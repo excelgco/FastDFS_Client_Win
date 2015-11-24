@@ -1,0 +1,16 @@
+EXPORTS
+FDFSC_Initialize @1
+FDFSC_UnInitialize @2
+FDFSC_UploadFile @3
+FDFSC_UploadSlaveFile @4
+FDFSC_DownloadFile @5
+FDFSC_DeleteFile @6
+FDFSC_UploadFileByID @7
+FDFSC_UploadSlaveFileByID @8
+FDFSC_DownloadFileByID @9
+FDFSC_DeleteFileByID @10
+FDFSC_TrackerListGroups @11
+FDFSC_TrackerListStorages @12
+FDFSC_DownloadFileByIDEx @13
+FDFSC_DeleteFileByIDEx @14
+FDFSC_CheckConfiguration @15

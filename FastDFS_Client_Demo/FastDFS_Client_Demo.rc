@@ -1,0 +1,250 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#ifndef APSTUDIO_INVOKED
+#include "targetver.h"
+#endif
+#include "afxres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// 中文(中华人民共和国) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_CHS)
+#ifdef _WIN32
+LANGUAGE LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED
+#pragma code_page(936)
+#endif //_WIN32
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#ifndef APSTUDIO_INVOKED\r\n"
+    "#include ""targetver.h""\r\n"
+    "#endif\r\n"
+    "#include ""afxres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "#define _AFX_NO_SPLITTER_RESOURCES\r\n"
+    "#define _AFX_NO_OLE_RESOURCES\r\n"
+    "#define _AFX_NO_TRACKER_RESOURCES\r\n"
+    "#define _AFX_NO_PROPERTY_RESOURCES\r\n"
+    "\r\n"
+    "#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_CHS)\r\n"
+    "LANGUAGE 4, 2\r\n"
+    "#pragma code_page(936)\r\n"
+    "#include ""res\\FastDFS_Client_Demo.rc2""  // 非 Microsoft Visual C++ 编辑的资源\r\n"
+    "#include ""l.CHS\\afxres.rc""      // 标准组件\r\n"
+    "#endif\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDR_MAINFRAME           ICON                    "res\\FastDFS_Client_Demo.ico"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_ABOUTBOX DIALOGEX 0, 0, 170, 62
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "关于 FastDFS_Client_Demo"
+FONT 9, "MS Shell Dlg", 0, 0, 0x1
+BEGIN
+    ICON            IDR_MAINFRAME,IDC_STATIC,14,14,21,20
+    LTEXT           "FastDFS_Client_Demo，1.0 版",IDC_STATIC,42,14,114,8,SS_NOPREFIX
+    LTEXT           "Copyright (C) 2015",IDC_STATIC,42,26,114,8
+    DEFPUSHBUTTON   "确定",IDOK,113,41,50,14,WS_GROUP
+END
+
+IDD_FASTDFS_CLIENT_DEMO_DIALOG DIALOGEX 0, 0, 570, 330
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+EXSTYLE WS_EX_APPWINDOW
+CAPTION "FastDFS_Client_Demo"
+FONT 9, "MS Shell Dlg", 0, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "确定",IDOK,445,309,50,14
+    PUSHBUTTON      "取消",IDCANCEL,513,309,50,14
+    PUSHBUTTON      "初始化",IDC_INITIALIZE_LIB,90,52,50,14
+    LTEXT           "文件路径",IDC_STATIC,9,91,28,8
+    EDITTEXT        IDC_UPLOAD_FILE_PATH,46,89,88,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "选择",IDC_CHOOSE_UPLOAD_FILE,138,89,50,14
+    PUSHBUTTON      "上传",IDC_UPLOAD,17,106,50,14
+    LISTBOX         IDC_LIST_LOG,201,7,362,119,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_HSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_FILE_ID,19,133,165,22,ES_AUTOHSCROLL
+    LTEXT           "文件ID",IDC_STATIC,10,122,22,8
+    PUSHBUTTON      "下载",IDC_DOWNLOAD_FILE,16,159,50,14
+    PUSHBUTTON      "删除文件",IDC_DELETE_FILE,70,159,50,14
+    LTEXT           "Master File Name",IDC_STATIC,9,201,54,8
+    EDITTEXT        IDC_MASTER_FILE_ID,20,212,165,12,ES_AUTOHSCROLL
+    LTEXT           "Prefix Name",IDC_STATIC,9,243,38,8
+    EDITTEXT        IDC_PREFIX_NAME,20,254,106,14,ES_AUTOHSCROLL
+    GROUPBOX        "主从文件操作",IDC_STATIC,7,189,184,9
+    LTEXT           "文件路径",IDC_STATIC,9,274,28,8
+    EDITTEXT        IDC_SLAVE_FILE_PATH,21,287,105,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "选择",IDC_CHOOSE_SLAVE_FILE,133,286,50,14
+    PUSHBUTTON      "上传",IDC_UPLOAD_SLAVE_FILE,15,304,50,14
+    PUSHBUTTON      "反初始化",IDC_UNINITIALIZE,143,53,50,14
+    GROUPBOX        "性能测试",IDC_STATIC,201,133,248,117
+    GROUPBOX        "功能测试",IDC_STATIC,7,75,184,248
+    PUSHBUTTON      "上传测试",IDC_UPLOAD_TEST,210,148,50,14
+    PUSHBUTTON      "下载测试",IDC_DOWNLOAD_TEST,210,166,50,14
+    PUSHBUTTON      "删除测试",IDC_DELETE_TEST,210,185,50,14
+    LTEXT           "线程个数",IDC_STATIC,295,148,28,8
+    EDITTEXT        IDC_THREAD_NUM,329,145,76,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "单个线程上传文件个数",IDC_STATIC,296,166,70,8
+    EDITTEXT        IDC_FILE_NUM,368,164,76,14,ES_AUTOHSCROLL
+    LTEXT           "Tracker IP",IDC_STATIC,14,23,33,8
+    LTEXT           "Tracker Port",IDC_STATIC,8,37,40,8
+    EDITTEXT        IDC_TRACKER_IP,52,20,126,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_TRACKER_PORT,52,36,64,14,ES_AUTOHSCROLL | ES_NUMBER
+    GROUPBOX        "静态",IDC_STATIC,7,11,190,57
+    LTEXT           "Master 组名",IDC_STATIC,7,228,38,8
+    EDITTEXT        IDC_MASTER_GROUP_NAME,52,225,40,14,ES_AUTOHSCROLL
+    LTEXT           "单个文件大小",IDC_STATIC,295,186,42,8
+    EDITTEXT        IDC_FILE_SIZE,343,184,82,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "持续上传真实数据",IDC_SEND_REAL,214,230,70,14
+    PUSHBUTTON      "停止上传真实数据",IDC_STOP_SEND_REAL,295,230,78,14
+    LTEXT           "C盘下准备4张数据,face.jpg,scene.jpg,template.txt,compress.jpg",IDC_STATIC,210,215,284,8
+    GROUPBOX        "状态监控",IDC_STATIC,201,249,248,55
+    LTEXT           "Tracker IP",IDC_STATIC,209,266,33,8
+    EDITTEXT        IDC_QUERY_TRACKER,245,263,67,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "查询状态",IDC_QUERY_STAT,321,262,50,14
+    PUSHBUTTON      "EX下载",IDC_DOWNLOAD_EX,127,159,50,14
+    PUSHBUTTON      "EX删除",IDC_DELETE_EX,127,175,50,14
+    PUSHBUTTON      "检查配置",IDC_CHECK_CONFIG,377,262,50,14
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 1,0,0,1
+ PRODUCTVERSION 1,0,0,1
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x4L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "080403a8"
+        BEGIN
+            VALUE "CompanyName", "TODO: <公司名>"
+            VALUE "FileDescription", "TODO: <文件说明>"
+            VALUE "FileVersion", "1.0.0.1"
+            VALUE "InternalName", "FastDFS_Client_Demo.exe"
+            VALUE "LegalCopyright", "TODO: (C) <公司名>。保留所有权利。"
+            VALUE "OriginalFilename", "FastDFS_Client_Demo.exe"
+            VALUE "ProductName", "TODO: <产品名>"
+            VALUE "ProductVersion", "1.0.0.1"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x804, 936
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO 
+BEGIN
+    IDD_ABOUTBOX, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 163
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 55
+    END
+
+    IDD_FASTDFS_CLIENT_DEMO_DIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 563
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 323
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE 
+BEGIN
+    IDS_ABOUTBOX            "关于 FastDFS_Client_Demo(&A)..."
+END
+
+#endif    // 中文(中华人民共和国) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+#define _AFX_NO_SPLITTER_RESOURCES
+#define _AFX_NO_OLE_RESOURCES
+#define _AFX_NO_TRACKER_RESOURCES
+#define _AFX_NO_PROPERTY_RESOURCES
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_CHS)
+LANGUAGE 4, 2
+#pragma code_page(936)
+#include "res\FastDFS_Client_Demo.rc2"  // 非 Microsoft Visual C++ 编辑的资源
+#include "l.CHS\afxres.rc"      // 标准组件
+#endif
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+

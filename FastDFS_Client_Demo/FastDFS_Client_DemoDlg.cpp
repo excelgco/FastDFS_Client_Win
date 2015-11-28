@@ -211,11 +211,11 @@ void CFastDFS_Client_DemoDlg::OnBnClickedInitializeLib()
 	nRet = m_func_Initialize(&addr[0], 1);
 	if(nRet != enumSuccess_FDFS)
 	{
-		strMsg.Format(_T("初始化失败"));
+		strMsg.Format(_T("Initialize Failed"));
 	}
 	else
 	{
-		strMsg.Format(_T("初始化成功"));
+		strMsg.Format(_T("Initialize Succeed"));
 	}
 	m_lstLog.AddString(strMsg);
 	g_bInit = 1;
@@ -327,7 +327,7 @@ void CFastDFS_Client_DemoDlg::OnBnClickedDownloadFile()
 	nRet = m_func_DownloadFileByID((BYTE*)szFileID, byFileBuff, &nFileSize);
 	if(nRet != enumSuccess_FDFS)
 	{
-		strMsg.Format(_T("下载文件失败"));
+		strMsg.Format(_T("下载文件失败."));
 		m_lstLog.AddString(strMsg);
 		return;
 	}
@@ -338,7 +338,7 @@ void CFastDFS_Client_DemoDlg::OnBnClickedDownloadFile()
 		return;
 	DWORD dwBytes;
 	WriteFile(hFile, byFileBuff, nFileSize, &dwBytes, NULL);
-	strMsg.Format(_T("照片写入到c:\12.jpeg文件中"));
+	strMsg.Format(_T("照片写入到c:\12.jpeg文件中."));
 	m_lstLog.AddString(strMsg);
 	CloseHandle(hFile);
 }
@@ -430,7 +430,7 @@ void CFastDFS_Client_DemoDlg::OnBnClickedUploadSlaveFile()
 	nFileSize	= GetFileSize(hFile, NULL);
 	if(nFileSize == 0)
 	{
-		MessageBox(_T("从文件大小错误"));
+		MessageBox(_T("从文件大小错误."));
 		return;
 	}
 	pbyFile	= new BYTE[nFileSize];
@@ -789,7 +789,7 @@ void CFastDFS_Client_DemoDlg::OnBnClickedStopSendReal()
 	SetEvent(m_hExitEvent);
 	m_nStop = now_microseconds();
 	TCHAR	*pStr	= new TCHAR[256];
-	_stprintf_s(pStr, 256, _T("本次上传总量 %d 平均上传速度 %f 张每秒"), m_nTotalUploadCount, (m_nTotalUploadCount) / ((float)(m_nStop - m_nStart) / 1000000));
+	_stprintf_s(pStr, 256, _T("本次上传总量 %d 平均上传速度 %f 张每秒."), m_nTotalUploadCount, (m_nTotalUploadCount) / ((float)(m_nStop - m_nStart) / 1000000));
 	MessageBox(pStr);
 }
 
@@ -841,7 +841,7 @@ void CFastDFS_Client_DemoDlg::OnBnClickedDownloadEx()
 	nRet = m_func_Initialize(NULL, 0);
 	if(nRet != enumSuccess_FDFS)
 	{
-		strMsg.Format(_T("初始化失败"));
+		strMsg.Format(_T("初始化失败."));
 		m_lstLog.AddString(strMsg);
 		return;
 	}
@@ -854,7 +854,7 @@ void CFastDFS_Client_DemoDlg::OnBnClickedDownloadEx()
 	nRet = m_func_DownloadFileByIDEx(szTrackerIP, szFileID, byFileBuff, &nFileSize);
 	if(nRet != enumSuccess_FDFS)
 	{
-		strMsg.Format(_T("下载文件失败"));
+		strMsg.Format(_T("下载文件失败."));
 		m_lstLog.AddString(strMsg);
 		return;
 	}
@@ -865,7 +865,7 @@ void CFastDFS_Client_DemoDlg::OnBnClickedDownloadEx()
 		return;
 	DWORD dwBytes;
 	WriteFile(hFile, byFileBuff, nFileSize, &dwBytes, NULL);
-	strMsg.Format(_T("照片写入到c:\12.jpeg文件中"));
+	strMsg.Format(_T("照片写入到c:\12.jpeg文件中."));
 	m_lstLog.AddString(strMsg);
 	CloseHandle(hFile);
 	m_func_UnInitialize();
@@ -888,7 +888,7 @@ void CFastDFS_Client_DemoDlg::OnBnClickedDeleteEx()
 	nRet = m_func_Initialize(NULL, 0);
 	if(nRet != enumSuccess_FDFS)
 	{
-		strMsg.Format(_T("初始化失败"));
+		strMsg.Format(_T("初始化失败."));
 		m_lstLog.AddString(strMsg);
 		return;
 	}

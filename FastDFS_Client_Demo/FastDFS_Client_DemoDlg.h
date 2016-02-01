@@ -10,7 +10,7 @@
 #include "TestDelete.h"
 #include "TestDownload.h"
 #include "afxwin.h"
-typedef UINT32			(__stdcall * func_Initialize)(ServerAddress *pAddr, UINT32 nAddrCount);
+typedef UINT32			(__stdcall * func_Initialize)(ServerAddress *pAddr, UINT32 nAddrCount, UINT32 nLogLevel);
 typedef UINT32			(__stdcall * func_UploadFile)(const BYTE *pbyFileBuff, UINT32 nFileSize, const BYTE *pbyFileExtName, BYTE *pbyGroupName, BYTE *pbyRemoteFileName);
 typedef UINT32			(__stdcall * func_DownloadFile)(const BYTE *pbyGroupName, const BYTE *pbyRemoteFileName, BYTE *pbyFileBuff, UINT32 *nFileSize);
 typedef UINT32			(__stdcall * func_DeleteFile)(const BYTE *pbyGroupName, const BYTE *pbyRemoteFileName);

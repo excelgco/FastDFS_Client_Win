@@ -208,7 +208,7 @@ void CFastDFS_Client_DemoDlg::OnBnClickedInitializeLib()
 	memcpy(addr[0].szIP, nTrackerIP, strlen(nTrackerIP) + 1);
 	UINT32 nRet;
 	CString strMsg;
-	nRet = m_func_Initialize(&addr[0], 1);
+	nRet = m_func_Initialize(&addr[0], 1, 0);
 	if(nRet != enumSuccess_FDFS)
 	{
 		strMsg.Format(_T("Initialize Failed"));
@@ -838,7 +838,7 @@ void CFastDFS_Client_DemoDlg::OnBnClickedDownloadEx()
 	m_func_DeleteFileByIDEx = (func_DeleteFileByIDEx)GetProcAddress(m_hDll, "FDFSC_DeleteFileByIDEx");
 	m_func_DownloadFileByIDEx = (func_DownloadFileByIDEx)GetProcAddress(m_hDll, "FDFSC_DownloadFileByIDEx");
 
-	nRet = m_func_Initialize(NULL, 0);
+	nRet = m_func_Initialize(NULL, 0, 1);
 	if(nRet != enumSuccess_FDFS)
 	{
 		strMsg.Format(_T("初始化失败."));
@@ -885,7 +885,7 @@ void CFastDFS_Client_DemoDlg::OnBnClickedDeleteEx()
 	UINT32			nFileSize			= 0;
 	CString			strMsg;
 	
-	nRet = m_func_Initialize(NULL, 0);
+	nRet = m_func_Initialize(NULL, 0, 1);
 	if(nRet != enumSuccess_FDFS)
 	{
 		strMsg.Format(_T("初始化失败."));

@@ -37,7 +37,10 @@ UINT32 TrackerMgr::Initialize(ServerAddress *pAddr, UINT32 nArrCount)
 		nRet = ConnectToTracker(pCurrentConn);
 		if(nRet != enumSuccess_FDFS)
 		{
-			WriteLogInfo(LogFileName, FDFSC_INFO_MODE, _T("TrackerMgr::Initialize Connect Failed IP:%s, Port:%d, Return Code:%d"), pCurrentConn->ip_addr, pCurrentConn->port, nRet);
+			WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("TrackerMgr::Initialize Connect Failed IP:%s, Port:%d, Return Code:%d"), pCurrentConn->ip_addr, pCurrentConn->port, nRet);
+			DeleteCriticalSection(&pCurrentConn->csRecv);
+			DeleteCriticalSection(&pCurrentConn->csSend);
+			delete pCurrentConn;
 		}
 		else
 		{
@@ -151,6 +154,8 @@ ConnectionInfo* TrackerMgr::GetConnectionByAddr(ServerAddress *pTrackerAddr)
 	else
 	{
 		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("TrackerMgr::GetConnectionByAddr ConnectToTracker Failed Server IP:%s, Port:%d"), pTrackerAddr->szIP, pTrackerAddr->nPort);
+		DeleteCriticalSection(&pNew->csRecv);
+		DeleteCriticalSection(&pNew->csSend);
 		delete pNew;
 		return NULL;
 	}
@@ -198,6 +203,8 @@ UINT32 TrackerMgr::QueryStorageStore(ConnectionInfo *pTrackerServer,
 		LeaveCriticalSection(&pTrackerServer->csRecv);
 		LeaveCriticalSection(&pTrackerServer->csSend);
 		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("TrackerMgr::QueryStorageStore Status Error, %d"), resp.byStatus);
+		if(resp.byStatus == 28)
+			return enumNoEnoughSpace_FDFS;
 		return enumFailure_FDFS;
 	}
 

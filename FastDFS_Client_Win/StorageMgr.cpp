@@ -125,8 +125,16 @@ UINT32 StorageMgr::UploadFile(ServerAddress *pStorageAddr,
 		pStorageServer->sock = INVALID_SOCKET;
 		LeaveCriticalSection(&pStorageServer->csRecv);
 		LeaveCriticalSection(&pStorageServer->csSend);
-		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("StorageMgr::UploadFile Status Error, %d"), resp.byStatus);
-		return enumFailure_FDFS;
+		if(resp.byStatus == 28)
+		{
+			WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("StorageMgr::UploadFile FastDFS Cluster Don't Have Enough Space"), pbyGroupName, pbyRemoteFileName);
+			return enumNoEnoughSpace_FDFS;
+		}
+		else
+		{
+			WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("StorageMgr::UploadFile Status Error, %d"), resp.byStatus);
+			return enumFailure_FDFS;
+		}
 	}
 
 	UINT32 nInBytes = buff2long64((const char*)(resp.byPkgLen));
@@ -276,13 +284,21 @@ UINT32 StorageMgr::UploadSlaveFile(const ServerAddress *pStorageAddr, const BYTE
 	}
 
 	if (resp.byStatus != 0)
-	{
+	{		
 		closesocket(pStorageServer->sock);
 		pStorageServer->sock = INVALID_SOCKET;
 		LeaveCriticalSection(&pStorageServer->csRecv);
 		LeaveCriticalSection(&pStorageServer->csSend);
-		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("StorageMgr::UploadSlaveFile Status Error, %d"), resp.byStatus);
-		return enumFailure_FDFS;
+		if(resp.byStatus == 28)
+		{
+			WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("StorageMgr::UploadSlaveFile FastDFS Cluster Don't Have Enough Space"), pbyGroupName, pbyRemoteFileName);
+			return enumNoEnoughSpace_FDFS;
+		}
+		else
+		{
+			WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("StorageMgr::UploadSlaveFile Status Error, %d"), resp.byStatus);
+			return enumFailure_FDFS;
+		}
 	}
 
 	UINT32 nInBytes = buff2long64((const char*)(resp.byPkgLen));
@@ -554,6 +570,8 @@ ConnectionInfo* StorageMgr::GetConnection(const ServerAddress *pStorageServer)
 	else
 	{
 		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("StorageMgr::GetConnection ConnectToStorage Failed Server IP:%s, Port:%d"), pStorageServer->szIP, pStorageServer->nPort);
+		DeleteCriticalSection(&pNew->csRecv);
+		DeleteCriticalSection(&pNew->csSend);
 		delete pNew;
 		return NULL;
 	}

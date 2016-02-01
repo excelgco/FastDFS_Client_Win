@@ -22,7 +22,8 @@ typedef enum enumTemplateResult_FDFS
 	enumNotInit_FDFS					= 2,				//未初始化
 	enumInvalidParameters_FDFS			= 3,				//参数错误
 	enumNetworkError_FDFS				= 4,				//网络错误
-	enumFileNotExists_FDFS				= 5					//文件不存在
+	enumFileNotExists_FDFS				= 5,				//文件不存在
+	enumNoEnoughSpace_FDFS				= 6					//磁盘空间不足
 };
 
 typedef struct __ServerAddress__
@@ -153,7 +154,8 @@ extern "C"{
  * enumFailure_FDFS：初始化失败
  */
 UINT32 __stdcall FDFSC_Initialize(ServerAddress *pAddr,
-								 UINT32 nAddrCount);
+								 UINT32 nAddrCount,
+								 UINT32 nLogLevel);
 
 /**
  * 反初始化FastDFS 客户端

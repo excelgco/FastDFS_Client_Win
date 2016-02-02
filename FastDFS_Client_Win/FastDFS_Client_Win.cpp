@@ -10,8 +10,11 @@ TrackerMgr *pTrackerMgr;
 StorageMgr *pStorageMgr;
 
 UINT32 __stdcall FDFSC_Initialize(ServerAddress *pAddr,
-								 UINT32 nAddrCount)
+								 UINT32 nAddrCount,
+								 UINT32 nLogLevel)
 {
+	g_nLogLevel = nLogLevel;
+
 	UINT32 nRet;
 	WSADATA wsd;
 	//socket库初始化
@@ -26,14 +29,18 @@ UINT32 __stdcall FDFSC_Initialize(ServerAddress *pAddr,
 	pStorageMgr = new StorageMgr();
 	if(pTrackerMgr == NULL || pStorageMgr == NULL)
 	{
-		WriteLogInfo(LogFileName, FDFSC_INFO_MODE, _T("FDFSC_Initialize Failed"));
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("FDFSC_Initialize Failed"));
 		return enumFailure_FDFS;
 	}
 
 	nRet = pTrackerMgr->Initialize(pAddr, nAddrCount);
 	if(nRet != enumSuccess_FDFS)
 	{
-		WriteLogInfo(LogFileName, FDFSC_INFO_MODE, _T("FDFSC_Initialize Failed"));
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("FDFSC_Initialize Failed"));
+	}
+	else
+	{
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("FDFSC_Initialize Succeed"));
 	}
 	return nRet;
 }
@@ -62,7 +69,7 @@ UINT32 __stdcall FDFSC_UploadFile(const BYTE *pbyFileBuff, UINT32 nFileSize, con
 	UINT32 nRet;
 	if(pbyFileBuff == NULL || nFileSize <= 0 || pszFileExtName == NULL || pszGroupName == NULL || pszRemoteFileName == NULL)
 	{
-		WriteLogInfo(LogFileName, FDFSC_INFO_MODE, _T("FDFSC_UploadFile Invalid Parameters"));
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("FDFSC_UploadFile Invalid Parameters"));
 		return enumInvalidParameters_FDFS;
 	}
 
@@ -70,7 +77,7 @@ UINT32 __stdcall FDFSC_UploadFile(const BYTE *pbyFileBuff, UINT32 nFileSize, con
 	pTrackerServer = pTrackerMgr->GetConnection();
 	if(pTrackerServer == NULL)
 	{
-		WriteLogInfo(LogFileName, FDFSC_INFO_MODE, _T("FDFSC_UploadFile Can't Get A Tracker Server"));
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("FDFSC_UploadFile Can't Get A Tracker Server"));
 		return enumNetworkError_FDFS;
 	}
 
@@ -81,7 +88,7 @@ UINT32 __stdcall FDFSC_UploadFile(const BYTE *pbyFileBuff, UINT32 nFileSize, con
 	nRet = pTrackerMgr->QueryStorageStore(pTrackerServer, &storageAddress, szGroupName, &nStorePathIndex);
 	if(nRet != enumSuccess_FDFS)
 	{
-		WriteLogInfo(LogFileName, FDFSC_INFO_MODE, _T("FDFSC_UploadFile Can't Get A Storage Server"));
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("FDFSC_UploadFile Can't Get A Storage Server"));
 		return nRet;
 	}
 
@@ -89,11 +96,11 @@ UINT32 __stdcall FDFSC_UploadFile(const BYTE *pbyFileBuff, UINT32 nFileSize, con
 		nFileSize, (const BYTE*)pszFileExtName, (BYTE*)pszGroupName, (BYTE*)pszRemoteFileName);
 	if(nRet != enumSuccess_FDFS)
 	{
-		WriteLogInfo(LogFileName, FDFSC_INFO_MODE, _T("FDFSC_UploadFile Upload Failed"));
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("FDFSC_UploadFile Upload Failed"));
 	}
 	else
 	{
-		WriteLogInfo(LogFileName, FDFSC_INFO_MODE, _T("FDFSC_UploadFile Succeed,File id: %s/%s"), pszGroupName, pszRemoteFileName);
+		WriteLogInfo(LogFileName, FDFSC_DEBUG_MODE, _T("FDFSC_UploadFile Succeed,File id: %s/%s"), pszGroupName, pszRemoteFileName);
 	}
 	return nRet;
 }
@@ -121,7 +128,7 @@ UINT32 __stdcall FDFSC_UploadSlaveFile(const BYTE *pbyFileBuff, UINT32 nFileSize
 		|| pszPrefixName == NULL || pszFileExtName == NULL
 		|| pszGroupName == NULL || pszRemoteFileName == NULL)
 	{
-		WriteLogInfo(LogFileName, FDFSC_INFO_MODE, _T("FDFSC_UploadSlaveFile Invalid Parameters"));
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("FDFSC_UploadSlaveFile Invalid Parameters"));
 		return enumInvalidParameters_FDFS;
 	}
 
@@ -129,7 +136,7 @@ UINT32 __stdcall FDFSC_UploadSlaveFile(const BYTE *pbyFileBuff, UINT32 nFileSize
 	pTrackerServer = pTrackerMgr->GetConnection();
 	if(pTrackerServer == NULL)
 	{
-		WriteLogInfo(LogFileName, FDFSC_INFO_MODE, _T("FDFSC_UploadSlaveFile Can't Get A Tracker Server"));
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("FDFSC_UploadSlaveFile Can't Get A Tracker Server"));
 		return enumNetworkError_FDFS;
 	}
 
@@ -140,7 +147,7 @@ UINT32 __stdcall FDFSC_UploadSlaveFile(const BYTE *pbyFileBuff, UINT32 nFileSize
 	nRet = pTrackerMgr->QueryUpdateStorageStore(pTrackerServer, (const BYTE*)pszMasterGroupName, (const BYTE*)pszMasterFileName, &storageAddress, &nStorePathIndex);
 	if(nRet != enumSuccess_FDFS)
 	{
-		WriteLogInfo(LogFileName, FDFSC_INFO_MODE, _T("FDFSC_UploadSlaveFile Can't Get A Storage Server"));
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("FDFSC_UploadSlaveFile Can't Get A Storage Server"));
 		return nRet;
 	}
 
@@ -148,11 +155,11 @@ UINT32 __stdcall FDFSC_UploadSlaveFile(const BYTE *pbyFileBuff, UINT32 nFileSize
 		(const BYTE*)pszPrefixName, (const BYTE*)pszFileExtName, (BYTE*)pszGroupName, (BYTE*)pszRemoteFileName);
 	if(nRet != enumSuccess_FDFS)
 	{
-		WriteLogInfo(LogFileName, FDFSC_INFO_MODE, _T("FDFSC_UploadSlaveFile Upload Failed"));
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("FDFSC_UploadSlaveFile Upload Failed"));
 	}
 	else
 	{
-		WriteLogInfo(LogFileName, FDFSC_INFO_MODE, _T("FDFSC_UploadSlaveFile Succeed,File id: %s/%s"), pszGroupName, pszRemoteFileName);
+		WriteLogInfo(LogFileName, FDFSC_DEBUG_MODE, _T("FDFSC_UploadSlaveFile Succeed,File id: %s/%s"), pszGroupName, pszRemoteFileName);
 	}
 	return nRet;
 }
@@ -178,7 +185,7 @@ UINT32 __stdcall FDFSC_DownloadFile(const TCHAR *pszGroupName, const TCHAR *pszR
 	UINT32 nRet;
 	if(pbyFileBuff == NULL || nFileSize <= 0 || pszGroupName == NULL || pszRemoteFileName == NULL)
 	{
-		WriteLogInfo(LogFileName, FDFSC_INFO_MODE, _T("FDFSC_DownloadFile Invalid Parameters"));
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("FDFSC_DownloadFile Invalid Parameters"));
 		return enumInvalidParameters_FDFS;
 	}
 
@@ -186,7 +193,7 @@ UINT32 __stdcall FDFSC_DownloadFile(const TCHAR *pszGroupName, const TCHAR *pszR
 	pTrackerServer = pTrackerMgr->GetConnection();
 	if(pTrackerServer == NULL)
 	{
-		WriteLogInfo(LogFileName, FDFSC_INFO_MODE, _T("FDFSC_DownloadFile Can't Get A Tracker Server"));
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("FDFSC_DownloadFile Can't Get A Tracker Server"));
 		return enumNetworkError_FDFS;
 	}
 
@@ -195,18 +202,18 @@ UINT32 __stdcall FDFSC_DownloadFile(const TCHAR *pszGroupName, const TCHAR *pszR
 	nRet = pTrackerMgr->QueryStorageFetch(pTrackerServer, (const BYTE*)pszGroupName, (const BYTE*)pszRemoteFileName, &storageAddress);
 	if(nRet != enumSuccess_FDFS)
 	{
-		WriteLogInfo(LogFileName, FDFSC_INFO_MODE, _T("FDFSC_DownloadFile Can't Get A Storage Server"));
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("FDFSC_DownloadFile Can't Get A Storage Server"));
 		return nRet;
 	}
 
 	nRet = pStorageMgr->DownloadFile(&storageAddress, (const BYTE*)pszGroupName, (const BYTE*)pszRemoteFileName, pbyFileBuff, nFileSize);
 	if(nRet != enumSuccess_FDFS)
 	{
-		WriteLogInfo(LogFileName, FDFSC_INFO_MODE, _T("FDFSC_DownloadFile Download Failed"));
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("FDFSC_DownloadFile Download Failed"));
 	}
 	else
 	{
-		WriteLogInfo(LogFileName, FDFSC_INFO_MODE, _T("FDFSC_DownloadFile Succeed,File id: %s/%s"), pszGroupName, pszRemoteFileName);
+		WriteLogInfo(LogFileName, FDFSC_DEBUG_MODE, _T("FDFSC_DownloadFile Succeed,File id: %s/%s"), pszGroupName, pszRemoteFileName);
 	}
 	return nRet;
 }
@@ -228,7 +235,7 @@ UINT32 __stdcall FDFSC_DownloadFileByID(const TCHAR *pszFileID, BYTE *pbyFileBuf
 	}
 	if(i == FDFS_GROUP_NAME_MAX_LEN)
 	{
-		WriteLogInfo(LogFileName, FDFSC_INFO_MODE, _T("FDFSC_DownloadFileByID Malformed File ID:%s"), pszFileID);
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("FDFSC_DownloadFileByID Malformed File ID:%s"), pszFileID);
 		return enumInvalidParameters_FDFS;
 	}
 
@@ -248,7 +255,7 @@ UINT32 __stdcall FDFSC_DownloadFileEx(const TCHAR *pszTrackerIPList, const TCHAR
 	UINT32 nRet;
 	if(pszTrackerIPList == NULL || pbyFileBuff == NULL || nFileSize <= 0 || pszGroupName == NULL || pszRemoteFileName == NULL)
 	{
-		WriteLogInfo(LogFileName, FDFSC_INFO_MODE, _T("FDFSC_DownloadFileEx Invalid Parameters"));
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("FDFSC_DownloadFileEx Invalid Parameters"));
 		return enumInvalidParameters_FDFS;
 	}
 
@@ -285,7 +292,7 @@ UINT32 __stdcall FDFSC_DownloadFileEx(const TCHAR *pszTrackerIPList, const TCHAR
 	}
 	if(pTrackerServer == NULL)
 	{
-		WriteLogInfo(LogFileName, FDFSC_INFO_MODE, _T("FDFSC_DeleteFileEx Can't Get A Tracker Server"));
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("FDFSC_DeleteFileEx Can't Get A Tracker Server"));
 		return enumNetworkError_FDFS;
 	}
 
@@ -294,18 +301,18 @@ UINT32 __stdcall FDFSC_DownloadFileEx(const TCHAR *pszTrackerIPList, const TCHAR
 	nRet = pTrackerMgr->QueryStorageFetch(pTrackerServer, (const BYTE*)pszGroupName, (const BYTE*)pszRemoteFileName, &storageAddress);
 	if(nRet != enumSuccess_FDFS)
 	{
-		WriteLogInfo(LogFileName, FDFSC_INFO_MODE, _T("FDFSC_DownloadFileEx Can't Get A Storage Server"));
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("FDFSC_DownloadFileEx Can't Get A Storage Server"));
 		return nRet;
 	}
 
 	nRet = pStorageMgr->DownloadFile(&storageAddress, (const BYTE*)pszGroupName, (const BYTE*)pszRemoteFileName, pbyFileBuff, nFileSize);
 	if(nRet != enumSuccess_FDFS)
 	{
-		WriteLogInfo(LogFileName, FDFSC_INFO_MODE, _T("FDFSC_DownloadFileEx Download Failed"));
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("FDFSC_DownloadFileEx Download Failed"));
 	}
 	else
 	{
-		WriteLogInfo(LogFileName, FDFSC_INFO_MODE, _T("FDFSC_DownloadFileEx Succeed,File id: %s/%s"), pszGroupName, pszRemoteFileName);
+		WriteLogInfo(LogFileName, FDFSC_DEBUG_MODE, _T("FDFSC_DownloadFileEx Succeed,File id: %s/%s"), pszGroupName, pszRemoteFileName);
 	}
 	return nRet;
 }
@@ -328,7 +335,7 @@ UINT32 __stdcall FDFSC_DownloadFileByIDEx(const TCHAR *pszTrackerIPList, const T
 	}
 	if(i == FDFS_GROUP_NAME_MAX_LEN)
 	{
-		WriteLogInfo(LogFileName, FDFSC_INFO_MODE, _T("FDFSC_DownloadFileByID Malformed File ID:%s"), pszFileID);
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("FDFSC_DownloadFileByID Malformed File ID:%s"), pszFileID);
 		return enumInvalidParameters_FDFS;
 	}
 
@@ -347,7 +354,7 @@ UINT32 __stdcall FDFSC_DeleteFile(const TCHAR *pszGroupName, const TCHAR *pszRem
 	UINT32 nRet;
 	if(pszGroupName == NULL || pszRemoteFileName == NULL)
 	{
-		WriteLogInfo(LogFileName, FDFSC_INFO_MODE, _T("FDFSC_DeleteFile Invalid Parameters"));
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("FDFSC_DeleteFile Invalid Parameters"));
 		return enumInvalidParameters_FDFS;
 	}
 
@@ -355,7 +362,7 @@ UINT32 __stdcall FDFSC_DeleteFile(const TCHAR *pszGroupName, const TCHAR *pszRem
 	pTrackerServer = pTrackerMgr->GetConnection();
 	if(pTrackerServer == NULL)
 	{
-		WriteLogInfo(LogFileName, FDFSC_INFO_MODE, _T("FDFSC_DeleteFile Can't Get A Tracker Server"));
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("FDFSC_DeleteFile Can't Get A Tracker Server"));
 		return enumNetworkError_FDFS;
 	}
 
@@ -364,18 +371,18 @@ UINT32 __stdcall FDFSC_DeleteFile(const TCHAR *pszGroupName, const TCHAR *pszRem
 	nRet = pTrackerMgr->QueryStorageFetch(pTrackerServer, (const BYTE*)pszGroupName, (const BYTE*)pszRemoteFileName, &storageAddress);
 	if(nRet != enumSuccess_FDFS)
 	{
-		WriteLogInfo(LogFileName, FDFSC_INFO_MODE, _T("FDFSC_DeleteFile Can't Get A Storage Server"));
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("FDFSC_DeleteFile Can't Get A Storage Server"));
 		return nRet;
 	}
 
 	nRet = pStorageMgr->DeleteFile(&storageAddress, (const BYTE*)pszGroupName, (const BYTE*)pszRemoteFileName);
 	if(nRet != enumSuccess_FDFS)
 	{
-		WriteLogInfo(LogFileName, FDFSC_INFO_MODE, _T("FDFSC_DeleteFile DeleteFile Failed"));
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("FDFSC_DeleteFile DeleteFile Failed"));
 	}
 	else
 	{
-		WriteLogInfo(LogFileName, FDFSC_INFO_MODE, _T("FDFSC_DeleteFile Succeed,File id: %s/%s"), pszGroupName, pszRemoteFileName);
+		WriteLogInfo(LogFileName, FDFSC_DEBUG_MODE, _T("FDFSC_DeleteFile Succeed,File id: %s/%s"), pszGroupName, pszRemoteFileName);
 	}
 	return nRet;
 }
@@ -397,7 +404,7 @@ UINT32 __stdcall FDFSC_DeleteFileByID(const TCHAR *pszFileID)
 	}
 	if(i == FDFS_GROUP_NAME_MAX_LEN)
 	{
-		WriteLogInfo(LogFileName, FDFSC_INFO_MODE, _T("FDFSC_DownloadFileByID Malformed File ID:%s"), pszFileID);
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("FDFSC_DownloadFileByID Malformed File ID:%s"), pszFileID);
 		return enumInvalidParameters_FDFS;
 	}
 
@@ -416,7 +423,7 @@ UINT32 __stdcall FDFSC_DeleteFileEx(const TCHAR *pszTrackerIPList, const TCHAR *
 	UINT32 nRet;
 	if(pszGroupName == NULL || pszRemoteFileName == NULL)
 	{
-		WriteLogInfo(LogFileName, FDFSC_INFO_MODE, _T("FDFSC_DeleteFileEx Invalid Parameters"));
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("FDFSC_DeleteFileEx Invalid Parameters"));
 		return enumInvalidParameters_FDFS;
 	}
 
@@ -453,7 +460,7 @@ UINT32 __stdcall FDFSC_DeleteFileEx(const TCHAR *pszTrackerIPList, const TCHAR *
 	}
 	if(pTrackerServer == NULL)
 	{
-		WriteLogInfo(LogFileName, FDFSC_INFO_MODE, _T("FDFSC_DeleteFileEx Can't Get A Tracker Server"));
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("FDFSC_DeleteFileEx Can't Get A Tracker Server"));
 		return enumNetworkError_FDFS;
 	}
 
@@ -462,18 +469,18 @@ UINT32 __stdcall FDFSC_DeleteFileEx(const TCHAR *pszTrackerIPList, const TCHAR *
 	nRet = pTrackerMgr->QueryStorageFetch(pTrackerServer, (const BYTE*)pszGroupName, (const BYTE*)pszRemoteFileName, &storageAddress);
 	if(nRet != enumSuccess_FDFS)
 	{
-		WriteLogInfo(LogFileName, FDFSC_INFO_MODE, _T("FDFSC_DeleteFileEx Can't Get A Storage Server"));
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("FDFSC_DeleteFileEx Can't Get A Storage Server"));
 		return nRet;
 	}
 
 	nRet = pStorageMgr->DeleteFile(&storageAddress, (const BYTE*)pszGroupName, (const BYTE*)pszRemoteFileName);
 	if(nRet != enumSuccess_FDFS)
 	{
-		WriteLogInfo(LogFileName, FDFSC_INFO_MODE, _T("FDFSC_DeleteFileEx DeleteFile Failed"));
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("FDFSC_DeleteFileEx DeleteFile Failed"));
 	}
 	else
 	{
-		WriteLogInfo(LogFileName, FDFSC_INFO_MODE, _T("FDFSC_DeleteFileEx Succeed,File id: %s/%s"), pszGroupName, pszRemoteFileName);
+		WriteLogInfo(LogFileName, FDFSC_DEBUG_MODE, _T("FDFSC_DeleteFileEx Succeed,File id: %s/%s"), pszGroupName, pszRemoteFileName);
 	}
 	return nRet;
 }
@@ -494,7 +501,7 @@ UINT32 __stdcall FDFSC_DeleteFileByIDEx(const TCHAR *pszTrackerIPList, const TCH
 	}
 	if(i == FDFS_GROUP_NAME_MAX_LEN)
 	{
-		WriteLogInfo(LogFileName, FDFSC_INFO_MODE, _T("FDFSC_DownloadFileByID Malformed File ID:%s"), pszFileID);
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("FDFSC_DownloadFileByID Malformed File ID:%s"), pszFileID);
 		return enumInvalidParameters_FDFS;
 	}
 
@@ -512,7 +519,7 @@ UINT32 __stdcall FDFSC_TrackerListGroups(ServerAddress *pTrackerAddr, FDFSGroupS
 {
 	if(pTrackerAddr == NULL || pStat == NULL || nLen > FDFS_MAX_GROUPS || pnStatCount == NULL)
 	{
-		WriteLogInfo(LogFileName, FDFSC_INFO_MODE, _T("FDFSC_TrackerListGroups Invalid Parameters"));
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("FDFSC_TrackerListGroups Invalid Parameters"));
 		return enumInvalidParameters_FDFS;
 	}
 
@@ -520,7 +527,7 @@ UINT32 __stdcall FDFSC_TrackerListGroups(ServerAddress *pTrackerAddr, FDFSGroupS
 	pTrackerServer = pTrackerMgr->GetConnectionByAddr(pTrackerAddr);
 	if(pTrackerServer == NULL)
 	{
-		WriteLogInfo(LogFileName, FDFSC_INFO_MODE, _T("FDFSC_TrackerListGroups Can't Find Tracker Server %s:%d"), pTrackerAddr->szIP, pTrackerAddr->nPort);
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("FDFSC_TrackerListGroups Can't Find Tracker Server %s:%d"), pTrackerAddr->szIP, pTrackerAddr->nPort);
 		return enumInvalidParameters_FDFS;
 	}
 
@@ -531,7 +538,7 @@ UINT32 __stdcall FDFSC_TrackerListStorages(ServerAddress *pTrackerAddr, TCHAR *p
 {
 	if(pTrackerAddr == NULL || pszGroupName == NULL || 0 == strcmp(_T(""), pszGroupName) || pStat == NULL || nLen > FDFS_MAX_SERVERS_EACH_GROUP || pnStatCount == NULL)
 	{
-		WriteLogInfo(LogFileName, FDFSC_INFO_MODE, _T("FDFSC_TrackerListStorages Invalid Parameters"));
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("FDFSC_TrackerListStorages Invalid Parameters"));
 		return enumInvalidParameters_FDFS;
 	}
 	
@@ -539,7 +546,7 @@ UINT32 __stdcall FDFSC_TrackerListStorages(ServerAddress *pTrackerAddr, TCHAR *p
 	pTrackerServer = pTrackerMgr->GetConnectionByAddr(pTrackerAddr);
 	if(pTrackerServer == NULL)
 	{
-		WriteLogInfo(LogFileName, FDFSC_INFO_MODE, _T("FDFSC_TrackerListStorages Can't Find Tracker Server %s:%d"), pTrackerAddr->szIP, pTrackerAddr->nPort);
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("FDFSC_TrackerListStorages Can't Find Tracker Server %s:%d"), pTrackerAddr->szIP, pTrackerAddr->nPort);
 		return enumInvalidParameters_FDFS;
 	}
 

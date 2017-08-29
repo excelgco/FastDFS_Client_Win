@@ -1,6 +1,8 @@
 #ifndef FASTDFS_CLIENT_WIN_H_
 #define FASTDFS_CLIENT_WIN_H_
 
+#include "CommonDefine.h"
+
 #define IP_ADDRESS_SIZE				16
 #define FDFS_GROUP_NAME_MAX_LEN		16
 #define FDFS_FILE_PREFIX_MAX_LEN	16
@@ -10,9 +12,12 @@
 #define FDFS_FILE_EXT_NAME_MAX_LEN	6
 #define FDFS_MAX_SERVERS_EACH_GROUP	32
 #define FDFS_MAX_GROUPS				512
+#define FDFS_MAX_TRACKERS		    16
 #define FDFS_PROTO_PKG_LEN_SIZE		8
 #define FDFS_VERSION_SIZE			6
 #define FDFS_DOMAIN_NAME_MAX_SIZE	128
+#define FDFS_MAX_META_NAME_LEN		 64
+#define FDFS_MAX_META_VALUE_LEN		256
 
 
 typedef enum enumTemplateResult_FDFS
@@ -136,6 +141,12 @@ typedef struct
 	UINT32 nCurrentWritePath;
     FDFSStorageInfo stat;
 } FDFSStorageStat;
+
+typedef struct
+{
+	char name[FDFS_MAX_META_NAME_LEN + 1];  //key
+	char value[FDFS_MAX_META_VALUE_LEN + 1]; //value
+} FDFSMetaData;
 
 #ifdef __cplusplus
 extern "C"{
@@ -395,6 +406,39 @@ UINT32 __stdcall FDFSC_TrackerListStorages(ServerAddress *pTrackerAddr, TCHAR *p
  * 未初始化就可以调用
  */
 UINT32 __stdcall FDFSC_CheckConfiguration(const TCHAR *pszTrackerIPList);
+
+ConnectionInfo *tracker_get_connection_win();
+int tracker_query_storage_store_win(ConnectionInfo *pTrackerServer,
+		ConnectionInfo *pStorageServer, char *group_name, 
+		int *store_path_index);
+
+int storage_upload_by_filename1_win(ConnectionInfo *pTrackerServer, 
+		ConnectionInfo *pStorageServer, const int store_path_index, 
+		const char *local_filename, 
+		const char *file_ext_name, const FDFSMetaData *meta_list, 
+		const int meta_count, const char *group_name, char *file_id);
+
+int storage_upload_by_filebuff1_win(ConnectionInfo *pTrackerServer,
+	ConnectionInfo *pStorageServer, const int store_path_index,
+	const char *file_buff, const __int64 file_size,
+	const char *file_ext_name, const FDFSMetaData *meta_list,
+	const int meta_count, const char *group_name, char *file_id);
+
+#define fdfs_get_file_ext_name(filename) \
+	fdfs_get_file_ext_name_ex(filename, true)
+
+/**
+* get file ext name from filename
+* params:
+*       filename:  the filename
+*       twoExtName: two extension name as the extension name
+* return: file ext name, NULL for no ext name
+**/
+const char *fdfs_get_file_ext_name_ex(const char *filename, 
+	const bool twoExtName);
+
+#define snprintf _snprintf
+#define STRERROR strerror
 
 #ifdef __cplusplus
 }

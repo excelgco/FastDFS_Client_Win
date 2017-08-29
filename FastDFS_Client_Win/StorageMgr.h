@@ -14,6 +14,19 @@ public:
 	StorageMgr();
 	~StorageMgr();
 
+	int UploadRawFile(
+		ConnectionInfo *pStorageServer,
+		int nStorePathIndex,
+		const char *filename,
+		const char *pbyFileExtName, 
+		char *pbyRemoteFileName);
+	int UploadBuffer(
+		ConnectionInfo *pStorageServer,
+		int nStorePathIndex,
+		const char *pbyFileBuff,
+		int nFileSize,
+		const char *pbyFileExtName, 
+		char *pbyRemoteFileName);
 	UINT32 UploadFile(ServerAddress *pStorageServer,
 		const TCHAR *szGroupName,
 		UINT32 nStorePathIndex,

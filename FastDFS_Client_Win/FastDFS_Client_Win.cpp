@@ -629,3 +629,119 @@ UINT32 __stdcall FDFSC_CheckConfiguration(const TCHAR *pszTrackerIPList)
 
 	return enumSuccess_FDFS;
 }
+
+ConnectionInfo *tracker_get_connection_win()
+{
+	ConnectionInfo *pTrackerServer = NULL;
+	pTrackerServer = pTrackerMgr->GetConnection();
+	return pTrackerServer;
+}
+
+int tracker_query_storage_store_win(ConnectionInfo *pTrackerServer,
+		ConnectionInfo *pStorageServer, char *group_name, 
+		int *store_path_index) {
+    int ret = 0;
+	ServerAddress storageAddress;
+	//UINT32 nStorePathIndex = 0;
+	memset(&storageAddress, 0, sizeof(ServerAddress));
+	//TCHAR szGroupName[FDFS_GROUP_NAME_MAX_LEN + 1];
+	ret = pTrackerMgr->QueryStorageStore(pTrackerServer, &storageAddress, group_name, (UINT32*)store_path_index);
+	if(ret != enumSuccess_FDFS)
+	{
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("Can't Get A Storage Server"));
+		return ret;
+	}
+	ConnectionInfo *conn = pStorageMgr->GetConnection(&storageAddress);
+	if (conn == 0) {
+		return -1;
+	}
+	//move semantics in c++
+	*pStorageServer = *conn;
+	conn = 0;
+    return ret;
+}
+
+int storage_upload_by_filename1_win(ConnectionInfo *pTrackerServer, 
+		ConnectionInfo *pStorageServer, const int store_path_index, 
+		const char *local_filename, 
+		const char *file_ext_name, const FDFSMetaData *meta_list, 
+		const int meta_count, const char *group_name, char *file_id)
+{
+    int ret = 0;
+    char ext_name[FDFS_FILE_EXT_NAME_MAX_LEN] = {0};
+    if (file_ext_name) {
+        memcpy(ext_name, file_ext_name, FDFS_FILE_EXT_NAME_MAX_LEN);
+    }
+    else {
+       strcpy(ext_name, fdfs_get_file_ext_name(local_filename));
+    }
+    ret = pStorageMgr->UploadRawFile(pStorageServer,
+        store_path_index, local_filename, ext_name, file_id);
+    return ret;
+}
+
+int storage_upload_by_filebuff1_win(ConnectionInfo *pTrackerServer,
+	ConnectionInfo *pStorageServer, const int store_path_index,
+	const char *file_buff, const __int64 file_size,
+	const char *file_ext_name, const FDFSMetaData *meta_list,
+	const int meta_count, const char *group_name, char *file_id)
+{
+	int ret = 0;
+	ret = pStorageMgr->UploadBuffer(pStorageServer,
+		store_path_index, file_buff, file_size, file_ext_name, file_id);
+	return ret;
+}
+
+
+const char *fdfs_get_file_ext_name_ex(const char *filename, 
+	const bool twoExtName)
+{
+	const char *fileExtName;
+	const char *p;
+	const char *pStart;
+	int extNameLen;
+
+	fileExtName = strrchr(filename, '.');
+	if (fileExtName == NULL)
+	{
+		return NULL;
+	}
+
+	extNameLen = strlen(fileExtName + 1);
+	if (extNameLen > FDFS_FILE_EXT_NAME_MAX_LEN)
+	{
+		return NULL;
+	}
+
+	if (strchr(fileExtName + 1, '/') != NULL) //invalid extension name
+	{
+		return NULL;
+	}
+
+	if (!twoExtName)
+	{
+		return fileExtName + 1;
+	}
+
+	pStart = fileExtName - (FDFS_FILE_EXT_NAME_MAX_LEN - extNameLen) - 1;
+	if (pStart < filename)
+	{
+		pStart = filename;
+	}
+
+	p = fileExtName - 1;  //before .
+	while ((p > pStart) && (*p != '.'))
+	{
+		p--;
+	}
+
+	if (p > pStart)  //found (extension name have a dot)
+	{
+		if (strchr(p + 1, '/') == NULL)  //valid extension name
+		{
+			return p + 1;   //skip .
+		}
+	}
+
+	return fileExtName + 1;  //skip .
+}

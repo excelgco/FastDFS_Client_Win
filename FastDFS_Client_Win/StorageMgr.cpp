@@ -1,3 +1,5 @@
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <windows.h>
 #include "StorageMgr.h"
 #include "FastDFS_Client_Win.h"
@@ -36,6 +38,319 @@ StorageMgr::~StorageMgr()
 	DeleteCriticalSection(&m_csOperation);
 }
 
+int StorageMgr::UploadRawFile(
+	ConnectionInfo *pStorageServer,
+		int nStorePathIndex,
+		const char *filename,
+		const char *pbyFileExtName, 
+        char *pbyRemoteFileName)
+{
+	int ret;
+	BYTE byOutBuff[512];
+	BYTE *p;
+	pbyRemoteFileName[0] = '\0';
+
+    //retrieve file size
+	struct _stat st;
+	int result = _stat(filename, &st);
+	if (result != 0)
+	{
+		printf("error: unable to retrieve \"%s\" size.\n",
+			filename);
+		return -1;
+	}
+	int nFileSize = st.st_size;
+
+	TrackerHeader *pHeader = (TrackerHeader*)byOutBuff;
+	p = byOutBuff + sizeof(TrackerHeader);
+	*p++ = (BYTE)nStorePathIndex;
+
+	long642buff(nFileSize, (char*)p);
+	p += FDFS_PROTO_PKG_LEN_SIZE;
+
+	memset(p, 0, FDFS_FILE_EXT_NAME_MAX_LEN);
+	if (pbyFileExtName != NULL)
+	{
+		int nFileExtLen;
+
+		nFileExtLen = strlen((const char*)pbyFileExtName);
+		if (nFileExtLen > FDFS_FILE_EXT_NAME_MAX_LEN)
+		{
+			nFileExtLen = FDFS_FILE_EXT_NAME_MAX_LEN;
+		}
+		if (nFileExtLen > 0)
+		{
+			memcpy(p, pbyFileExtName, nFileExtLen);
+		}
+	}
+	p += FDFS_FILE_EXT_NAME_MAX_LEN;
+
+	long642buff((p - byOutBuff) + nFileSize - sizeof(TrackerHeader), (char*)pHeader->byPkgLen);
+	pHeader->byCmd = STORAGE_PROTO_CMD_UPLOAD_FILE;
+	pHeader->byStatus = 0;
+
+	EnterCriticalSection(&pStorageServer->csSend);
+	if ((ret = tcpsenddata_nb(pStorageServer->sock, byOutBuff, p - byOutBuff, DEFAULT_NETWORK_TIMEOUT)) != 0)
+	{
+		closesocket(pStorageServer->sock);
+		pStorageServer->sock = INVALID_SOCKET;
+		LeaveCriticalSection(&pStorageServer->csSend);
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("StorageMgr::UploadFile tcpsenddata_nb Header Failed, Error Code:%d"), ret);
+		return enumNetworkError_FDFS;
+	}
+
+
+	//包头发送完毕，发送文件主体
+#define READ_BLOCK_SIZE (1024 * 1024)
+	FILE *fp = fopen(filename, "rb");
+	if (NULL == fp) {
+		ret = -1;
+		return ret;
+	}
+	int readed = 0;
+	unsigned char *buf = (unsigned char *)malloc(READ_BLOCK_SIZE);
+	while (1) {
+		int readed = fread(buf, 1, READ_BLOCK_SIZE, fp);
+		if (readed == 0) {
+			break;
+		}
+		if ((ret = tcpsenddata_nb(pStorageServer->sock, buf, readed, DEFAULT_NETWORK_TIMEOUT)) != 0)
+		{
+			closesocket(pStorageServer->sock);
+			pStorageServer->sock = INVALID_SOCKET;
+			LeaveCriticalSection(&pStorageServer->csSend);
+			WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("StorageMgr::UploadFile tcpsenddata_nb Body Failed, Error Code:%d"), ret);
+			ret = enumNetworkError_FDFS;
+			break;
+		}
+	}
+	free(buf);
+	fclose(fp);
+	if (ret) {
+		return ret;
+	}
+	//文件发送完毕，接受服务器返回的文件id
+	TrackerHeader resp;
+	int nCount = 0;
+	EnterCriticalSection(&pStorageServer->csRecv);
+	if ((ret = tcprecvdata_nb(pStorageServer->sock, &resp, sizeof(resp), DEFAULT_NETWORK_TIMEOUT, &nCount)) != 0)
+	{
+		closesocket(pStorageServer->sock);
+		pStorageServer->sock = INVALID_SOCKET;
+		LeaveCriticalSection(&pStorageServer->csRecv);
+		LeaveCriticalSection(&pStorageServer->csSend);
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("StorageMgr::UploadFile tcprecvdata_nb ID Header Failed, Error Code:%d"), ret);
+		return enumNetworkError_FDFS;
+	}
+
+	if (resp.byStatus != 0)
+	{
+		closesocket(pStorageServer->sock);
+		pStorageServer->sock = INVALID_SOCKET;
+		LeaveCriticalSection(&pStorageServer->csRecv);
+		LeaveCriticalSection(&pStorageServer->csSend);
+		if(resp.byStatus == 28)
+		{
+			WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("StorageMgr::UploadFile FastDFS Cluster Don't Have Enough Space"), pbyRemoteFileName);
+			return enumNoEnoughSpace_FDFS;
+		}
+		else
+		{
+			WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("StorageMgr::UploadFile Status Error, %d"), resp.byStatus);
+			return enumFailure_FDFS;
+		}
+	}
+
+	UINT32 nInBytes = buff2long64((const char*)(resp.byPkgLen));
+	if (nInBytes < 0)
+	{
+		closesocket(pStorageServer->sock);
+		pStorageServer->sock = INVALID_SOCKET;
+		LeaveCriticalSection(&pStorageServer->csRecv);
+		LeaveCriticalSection(&pStorageServer->csSend);
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("StorageMgr::UploadFile Packet Len Error"));
+		return enumFailure_FDFS;
+	}
+
+	//包头接收完毕，接收Body
+	BYTE *pbyInBuff = NULL;
+	pbyInBuff = new BYTE[nInBytes];
+	if(pbyInBuff == NULL)
+	{
+		closesocket(pStorageServer->sock);
+		pStorageServer->sock = INVALID_SOCKET;
+		LeaveCriticalSection(&pStorageServer->csRecv);
+		LeaveCriticalSection(&pStorageServer->csSend);
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("StorageMgr::UploadFile New Error"));
+		delete[] pbyInBuff;
+		return enumFailure_FDFS;
+	}
+	if ((ret = tcprecvdata_nb(pStorageServer->sock, pbyInBuff, nInBytes, DEFAULT_NETWORK_TIMEOUT, &nCount)) != 0)
+	{
+		closesocket(pStorageServer->sock);
+		pStorageServer->sock = INVALID_SOCKET;
+		LeaveCriticalSection(&pStorageServer->csRecv);
+		LeaveCriticalSection(&pStorageServer->csSend);
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("StorageMgr::UploadFile tcprecvdata_nb ID Body Failed, Error Code:%d"), ret);
+		delete[] pbyInBuff;
+		return enumNetworkError_FDFS;
+	}
+	LeaveCriticalSection(&pStorageServer->csRecv);
+	LeaveCriticalSection(&pStorageServer->csSend);
+	
+	//数据接收完毕，开始解析
+	//memcpy(pbyGroupName, pbyInBuff, FDFS_GROUP_NAME_MAX_LEN);
+	//pbyGroupName[FDFS_GROUP_NAME_MAX_LEN] = '\0';
+
+	memcpy(pbyRemoteFileName, pbyInBuff + FDFS_GROUP_NAME_MAX_LEN, \
+		nInBytes - FDFS_GROUP_NAME_MAX_LEN);
+	pbyRemoteFileName[nInBytes - FDFS_GROUP_NAME_MAX_LEN] = '\0';
+
+	delete[] pbyInBuff;
+	return enumSuccess_FDFS;
+}
+
+int StorageMgr::UploadBuffer(
+	ConnectionInfo *pStorageServer,
+	int nStorePathIndex,
+	const char *pbyFileBuff,
+	int nFileSize,
+	const char *pbyFileExtName,
+	char *pbyRemoteFileName)
+{
+	int ret;
+	BYTE byOutBuff[512];
+	BYTE *p;
+
+	TrackerHeader *pHeader = (TrackerHeader*)byOutBuff;
+	p = byOutBuff + sizeof(TrackerHeader);
+	*p++ = (BYTE)nStorePathIndex;
+
+	long642buff(nFileSize, (char*)p);
+	p += FDFS_PROTO_PKG_LEN_SIZE;
+
+	memset(p, 0, FDFS_FILE_EXT_NAME_MAX_LEN);
+	if (pbyFileExtName != NULL)
+	{
+		int nFileExtLen;
+
+		nFileExtLen = strlen((const char*)pbyFileExtName);
+		if (nFileExtLen > FDFS_FILE_EXT_NAME_MAX_LEN)
+		{
+			nFileExtLen = FDFS_FILE_EXT_NAME_MAX_LEN;
+		}
+		if (nFileExtLen > 0)
+		{
+			memcpy(p, pbyFileExtName, nFileExtLen);
+		}
+	}
+	p += FDFS_FILE_EXT_NAME_MAX_LEN;
+
+	long642buff((p - byOutBuff) + nFileSize - sizeof(TrackerHeader), (char*)pHeader->byPkgLen);
+	pHeader->byCmd = STORAGE_PROTO_CMD_UPLOAD_FILE;
+	pHeader->byStatus = 0;
+
+	EnterCriticalSection(&pStorageServer->csSend);
+	if ((ret = tcpsenddata_nb(pStorageServer->sock, byOutBuff, p - byOutBuff, DEFAULT_NETWORK_TIMEOUT)) != 0)
+	{
+		closesocket(pStorageServer->sock);
+		pStorageServer->sock = INVALID_SOCKET;
+		LeaveCriticalSection(&pStorageServer->csSend);
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("StorageMgr::UploadFile tcpsenddata_nb Header Failed, Error Code:%d"), ret);
+		return enumNetworkError_FDFS;
+	}
+
+
+	//包头发送完毕，发送文件主体
+	if ((ret = tcpsenddata_nb(pStorageServer->sock, (char *)pbyFileBuff, nFileSize, DEFAULT_NETWORK_TIMEOUT)) != 0)
+	{
+		closesocket(pStorageServer->sock);
+		pStorageServer->sock = INVALID_SOCKET;
+		LeaveCriticalSection(&pStorageServer->csSend);
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("StorageMgr::UploadFile tcpsenddata_nb Body Failed, Error Code:%d"), ret);
+		return enumNetworkError_FDFS;
+	}
+	//文件发送完毕，接受服务器返回的文件id
+	TrackerHeader resp;
+	int nCount = 0;
+	EnterCriticalSection(&pStorageServer->csRecv);
+	if ((ret = tcprecvdata_nb(pStorageServer->sock, &resp, sizeof(resp), DEFAULT_NETWORK_TIMEOUT, &nCount)) != 0)
+	{
+		closesocket(pStorageServer->sock);
+		pStorageServer->sock = INVALID_SOCKET;
+		LeaveCriticalSection(&pStorageServer->csRecv);
+		LeaveCriticalSection(&pStorageServer->csSend);
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("StorageMgr::UploadFile tcprecvdata_nb ID Header Failed, Error Code:%d"), ret);
+		return enumNetworkError_FDFS;
+	}
+
+	if (resp.byStatus != 0)
+	{
+		closesocket(pStorageServer->sock);
+		pStorageServer->sock = INVALID_SOCKET;
+		LeaveCriticalSection(&pStorageServer->csRecv);
+		LeaveCriticalSection(&pStorageServer->csSend);
+		if(resp.byStatus == 28)
+		{
+			WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("StorageMgr::UploadFile FastDFS Cluster Don't Have Enough Space"), pbyRemoteFileName);
+			return enumNoEnoughSpace_FDFS;
+		}
+		else
+		{
+			WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("StorageMgr::UploadFile Status Error, %d"), resp.byStatus);
+			return enumFailure_FDFS;
+		}
+	}
+
+	UINT32 nInBytes = buff2long64((const char*)(resp.byPkgLen));
+	if (nInBytes < 0)
+	{
+		closesocket(pStorageServer->sock);
+		pStorageServer->sock = INVALID_SOCKET;
+		LeaveCriticalSection(&pStorageServer->csRecv);
+		LeaveCriticalSection(&pStorageServer->csSend);
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("StorageMgr::UploadFile Packet Len Error"));
+		return enumFailure_FDFS;
+	}
+
+	//包头接收完毕，接收Body
+	BYTE *pbyInBuff = NULL;
+	pbyInBuff = new BYTE[nInBytes];
+	if(pbyInBuff == NULL)
+	{
+		closesocket(pStorageServer->sock);
+		pStorageServer->sock = INVALID_SOCKET;
+		LeaveCriticalSection(&pStorageServer->csRecv);
+		LeaveCriticalSection(&pStorageServer->csSend);
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("StorageMgr::UploadFile New Error"));
+		delete[] pbyInBuff;
+		return enumFailure_FDFS;
+	}
+	if ((ret = tcprecvdata_nb(pStorageServer->sock, pbyInBuff, nInBytes, DEFAULT_NETWORK_TIMEOUT, &nCount)) != 0)
+	{
+		closesocket(pStorageServer->sock);
+		pStorageServer->sock = INVALID_SOCKET;
+		LeaveCriticalSection(&pStorageServer->csRecv);
+		LeaveCriticalSection(&pStorageServer->csSend);
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("StorageMgr::UploadFile tcprecvdata_nb ID Body Failed, Error Code:%d"), ret);
+		delete[] pbyInBuff;
+		return enumNetworkError_FDFS;
+	}
+	LeaveCriticalSection(&pStorageServer->csRecv);
+	LeaveCriticalSection(&pStorageServer->csSend);
+	
+	//数据接收完毕，开始解析
+	//memcpy(pbyGroupName, pbyInBuff, FDFS_GROUP_NAME_MAX_LEN);
+	//pbyGroupName[FDFS_GROUP_NAME_MAX_LEN] = '\0';
+
+	memcpy(pbyRemoteFileName, pbyInBuff + FDFS_GROUP_NAME_MAX_LEN, \
+		nInBytes - FDFS_GROUP_NAME_MAX_LEN);
+	pbyRemoteFileName[nInBytes - FDFS_GROUP_NAME_MAX_LEN] = '\0';
+
+	delete[] pbyInBuff;
+	return enumSuccess_FDFS;
+}
+
 UINT32 StorageMgr::UploadFile(ServerAddress *pStorageAddr,
 		const TCHAR *szGroupName,
 		UINT32 nStorePathIndex,
@@ -43,7 +358,7 @@ UINT32 StorageMgr::UploadFile(ServerAddress *pStorageAddr,
 		UINT32 nFileSize,
 		const BYTE *pbyFileExtName, BYTE *pbyGroupName, BYTE *pbyRemoteFileName)
 {
-	UINT32 nRet;
+	UINT32 ret;
 	BYTE byOutBuff[512];
 	BYTE *p;
 	ConnectionInfo *pStorageServer = NULL;
@@ -86,22 +401,22 @@ UINT32 StorageMgr::UploadFile(ServerAddress *pStorageAddr,
 	pHeader->byStatus = 0;
 
 	EnterCriticalSection(&pStorageServer->csSend);
-	if ((nRet = tcpsenddata_nb(pStorageServer->sock, byOutBuff, p - byOutBuff, DEFAULT_NETWORK_TIMEOUT)) != 0)
+	if ((ret = tcpsenddata_nb(pStorageServer->sock, byOutBuff, p - byOutBuff, DEFAULT_NETWORK_TIMEOUT)) != 0)
 	{
 		closesocket(pStorageServer->sock);
 		pStorageServer->sock = INVALID_SOCKET;
 		LeaveCriticalSection(&pStorageServer->csSend);
-		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("StorageMgr::UploadFile tcpsenddata_nb Header Failed, Error Code:%d"), nRet);
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("StorageMgr::UploadFile tcpsenddata_nb Header Failed, Error Code:%d"), ret);
 		return enumNetworkError_FDFS;
 	}
 
 	//包头发送完毕，发送文件主体
-	if ((nRet = tcpsenddata_nb(pStorageServer->sock, (char *)pbyFileBuff, nFileSize, DEFAULT_NETWORK_TIMEOUT)) != 0)
+	if ((ret = tcpsenddata_nb(pStorageServer->sock, (char *)pbyFileBuff, nFileSize, DEFAULT_NETWORK_TIMEOUT)) != 0)
 	{
 		closesocket(pStorageServer->sock);
 		pStorageServer->sock = INVALID_SOCKET;
 		LeaveCriticalSection(&pStorageServer->csSend);
-		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("StorageMgr::UploadFile tcpsenddata_nb Body Failed, Error Code:%d"), nRet);
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("StorageMgr::UploadFile tcpsenddata_nb Body Failed, Error Code:%d"), ret);
 		return enumNetworkError_FDFS;
 	}
 
@@ -109,13 +424,13 @@ UINT32 StorageMgr::UploadFile(ServerAddress *pStorageAddr,
 	TrackerHeader resp;
 	int nCount = 0;
 	EnterCriticalSection(&pStorageServer->csRecv);
-	if ((nRet = tcprecvdata_nb(pStorageServer->sock, &resp, sizeof(resp), DEFAULT_NETWORK_TIMEOUT, &nCount)) != 0)
+	if ((ret = tcprecvdata_nb(pStorageServer->sock, &resp, sizeof(resp), DEFAULT_NETWORK_TIMEOUT, &nCount)) != 0)
 	{
 		closesocket(pStorageServer->sock);
 		pStorageServer->sock = INVALID_SOCKET;
 		LeaveCriticalSection(&pStorageServer->csRecv);
 		LeaveCriticalSection(&pStorageServer->csSend);
-		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("StorageMgr::UploadFile tcprecvdata_nb ID Header Failed, Error Code:%d"), nRet);
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("StorageMgr::UploadFile tcprecvdata_nb ID Header Failed, Error Code:%d"), ret);
 		return enumNetworkError_FDFS;
 	}
 
@@ -161,13 +476,13 @@ UINT32 StorageMgr::UploadFile(ServerAddress *pStorageAddr,
 		delete[] pbyInBuff;
 		return enumFailure_FDFS;
 	}
-	if ((nRet = tcprecvdata_nb(pStorageServer->sock, pbyInBuff, nInBytes, DEFAULT_NETWORK_TIMEOUT, &nCount)) != 0)
+	if ((ret = tcprecvdata_nb(pStorageServer->sock, pbyInBuff, nInBytes, DEFAULT_NETWORK_TIMEOUT, &nCount)) != 0)
 	{
 		closesocket(pStorageServer->sock);
 		pStorageServer->sock = INVALID_SOCKET;
 		LeaveCriticalSection(&pStorageServer->csRecv);
 		LeaveCriticalSection(&pStorageServer->csSend);
-		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("StorageMgr::UploadFile tcprecvdata_nb ID Body Failed, Error Code:%d"), nRet);
+		WriteLogInfo(LogFileName, FDFSC_ERROR_MODE, _T("StorageMgr::UploadFile tcprecvdata_nb ID Body Failed, Error Code:%d"), ret);
 		delete[] pbyInBuff;
 		return enumNetworkError_FDFS;
 	}
